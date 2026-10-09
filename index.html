@@ -1406,7 +1406,7 @@ function genLevel(n){
   let bossInfo=null;if(isBoss){const v=chOf(n)%4,hp=Math.min(460,165+chOf(n)*26),ev_=chOf(n)>=8?3:4;goals.length=0;goals.push({k:'boss',n:hp});bossInfo={v,max:hp,every:ev_,tick:ev_};}
   const hard=isHard(n);
   const moves=isBoss?28:tpl.proc?tpl.moves-(hard?3:0):tpl.moves+(n<=6?3:0)-Math.min(5,Math.floor((n-1)/12)*2)-(hard?3:0);
-  L={n,moves,startMoves:moves,goals,pads,over:false,score:0,hard,boss:bossInfo,drop:0,bstreak:0,goldLeft:isBoss?0:(tpl.gold||0),voids:tpl.m.some(r=>r.includes('X'))};
+  L={n,moves,startMoves:moves,goals,pads,over:false,score:0,hard,boss:bossInfo,drop:Math.min(DROP_MAX,S.drop||0),bstreak:0,goldLeft:isBoss?0:(tpl.gold||0),voids:tpl.m.some(r=>r.includes('X'))};
   fillInitial();
   tapes.forEach(([r,c])=>{if(isT(G[r][c]))G[r][c].tape=1;});
   if(L.goldLeft){const cols=[1,2,3,4,5].sort(()=>rand()-.5).slice(0,Math.min(2,L.goldLeft));cols.forEach(c=>{const old=G[0][c];if(!isT(old))return;const t=newTile(0,c,-2);t.gold=true;t.y=old.y;G[0][c]=t;L.goldLeft--;});}
@@ -1571,11 +1571,11 @@ function rhythmHit(){if(!L)return;const ph=beatPhase(),d=Math.min(ph,1-ph),x=PAD
   else if(d<.2){L.bstreak++;addDrop(1);floatText(x,y,L.bstreak>1?'ON BEAT x'+L.bstreak:'ON BEAT','#9df4ff',22);tone(nf(15),.06,'square',.04);}
   else L.bstreak=0;
   if(L.bstreak>=3&&L.bstreak%3===0)addDrop(1);}
-function addDrop(n){const was=L.drop||0;L.drop=Math.min(DROP_MAX,was+n);renderDrop();if(was<DROP_MAX&&L.drop>=DROP_MAX){setTimeout(()=>banner('DROP READY!'),300);sfx.zap();buzz(30);}}
+function addDrop(n){const was=L.drop||0;L.drop=Math.min(DROP_MAX,was+n);S.drop=L.drop;save();renderDrop();if(was<DROP_MAX&&L.drop>=DROP_MAX){setTimeout(()=>banner('DROP READY!'),300);sfx.zap();buzz(30);}}
 function renderDrop(){if(!dropEl||!L)return;const full=(L.drop||0)>=DROP_MAX;dropEl.classList.toggle('full',full);const c=dropEl.querySelector('canvas').getContext('2d');c.clearRect(0,0,128,128);
   const n=DROP_MAX,gap=.14;for(let i=0;i<n;i++){const a0=-Math.PI/2+i*P2/n+gap/2,a1=a0+P2/n-gap;c.beginPath();c.arc(64,64,56,a0,a1);c.lineWidth=12;c.lineCap='round';c.strokeStyle=i<(L.drop||0)?(full?'#fff3a0':'#45dcff'):'rgba(255,255,255,.18)';c.stroke();}}
 async function doDrop(){if(!L||L.over)return;if((L.drop||0)<DROP_MAX){toast('Swipe on the beat to charge the Drop',1500);return;}if(busy)return;
-  busy=true;hint=null;L.drop=0;L.bstreak=0;renderDrop();sfx.drop();buzz(80);banner('THE DROP!');await sleep(450);shake=18;
+  busy=true;hint=null;L.drop=0;S.drop=0;save();L.bstreak=0;renderDrop();sfx.drop();buzz(80);banner('THE DROP!');await sleep(450);shake=18;
   const rows=[...Array(ROWS).keys()].sort(()=>Math.random()-.5).slice(0,3),cols=[...Array(COLS).keys()].sort(()=>Math.random()-.5).slice(0,2);
   await detonate([...rows.map(r=>({r,c:3,type:'rowF'})),...cols.map(c=>({r:4,c,type:'colF'}))]);await cascade();await afterMove(false);}
 function dropGuide(){modal({title:'Play on the beat',body:`<div class="guide inset"><img src="${iconURL('flame')}" alt=""><div><b>Watch the DROP button</b>Its ring pulses on every beat of the backing track.</div>
@@ -2242,7 +2242,7 @@ window.__bm={openAvatars,ROOMS,evTap,openAlbum,drawCards,checkSets,buyCard,doDro
 <script>
 /* Self-updater: home-screen apps on iPhone resume instead of reloading, so check for a newer build
    whenever the app comes to the front. Reload automatically on safe screens; otherwise show a button. */
-(()=>{const BUILD='1791559888';let ready=false,checking=false;
+(()=>{const BUILD='1791559907';let ready=false,checking=false;
   const btn=document.getElementById('updBtn');
   const safe=()=>{const g=document.getElementById('game'),m=document.getElementById('modal'),st=document.getElementById('story');return g&&g.hidden&&m&&m.hidden&&st&&st.hidden;};
   const go=()=>{location.reload();};
