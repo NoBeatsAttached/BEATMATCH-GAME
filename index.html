@@ -1113,7 +1113,7 @@ function hit(r,c,hc,queue){
   else if(o.k==='pad'){if(!hc.pads.has(o.pad)){hc.pads.add(o.pad);damagePad(o.pad);}}
   else damageBlocker(r,c);
 }
-async function detonate(queue){let n=0;while(queue.length&&n++<200){const it=queue.shift();await fire(it,queue);}}
+async function detonate(queue){let n=0;while(queue.length&&n++<200&&!(L&&L.skip)){const it=queue.shift();await fire(it,queue);}}
 async function fire(it,queue){
   let{r,c}=it;const t=it.tile;
   if(t&&G[r][c]===t){G[r][c]=null;dying.push({o:t,t:0});}
@@ -1148,7 +1148,7 @@ async function fire(it,queue){
   await sleep(90);
 }
 let shake=0;
-async function cascade(){let step=1;for(let i=0;i<40;i++){applyGravity();await waitSettle();if(collectGold()){await sleep(160);continue;}const g=findMatches();if(!g.length)break;lastSwap=[];await processMatches(g,step++);}}
+async function cascade(){let step=1;for(let i=0;i<40&&!(L&&L.skip);i++){applyGravity();await waitSettle();if(collectGold()){await sleep(160);continue;}const g=findMatches();if(!g.length)break;lastSwap=[];await processMatches(g,step++);}}
 function goalsDone(){return L.goals.every(g=>g.n<=0);}
 async function afterMove(movedTurn=true){
   if(movedTurn)L.pads.forEach(p=>{if(p.hp>0)p.color=(p.color+1)%NC;});
@@ -1212,11 +1212,14 @@ async function useTool(kk,r,c){
 function setTool(kk){tool=kk;document.querySelectorAll('.tool').forEach(b=>b.classList.toggle('on',b.dataset.t===kk));$('#toolhint').textContent=kk?{stick:'Tap any tile to smash it',sweep:'Tap a row to clear it',drop:'Tap a column to clear it'}[kk]:'';}
 async function winLevel(){
   L.over=true;busy=true;const left=L.moves,rate=left>=L.startMoves*.3?3:left>=L.startMoves*.12?2:1;
-  await sleep(300);banner('Encore!');sfx.win();buzz(30);await sleep(700);
+  L.encore=true;L.skip=false;$('#toolhint').textContent='Tap to skip';
+  const ssleep=ms=>new Promise(r=>{const t0=performance.now();const chk=()=>{if(L.skip||performance.now()-t0>=ms)r();else requestAnimationFrame(chk);};chk();});
+  await ssleep(300);banner('Encore!');sfx.win();buzz(30);await ssleep(700);
   let bonus=0;const n=Math.min(L.moves,10);
-  for(let i=0;i<n;i++){const all=[];for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(matchable(G[r][c])&&!G[r][c].tape)all.push(G[r][c]);if(!all.length)break;const t=all[rnd(all.length)];t.p=Math.random()<.5?'rowF':'colF';t.sc=1.7;sfx.pop();L.moves--;bonus+=15;renderMoves();await sleep(110);}
+  for(let i=0;i<n&&!L.skip;i++){const all=[];for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(matchable(G[r][c])&&!G[r][c].tape)all.push(G[r][c]);if(!all.length)break;const t=all[rnd(all.length)];t.p=Math.random()<.5?'rowF':'colF';t.sc=1.7;sfx.pop();L.moves--;bonus+=15;renderMoves();await ssleep(110);}
   bonus+=L.moves*10;L.moves=0;renderMoves();
-  for(let q=0;q<6;q++){const qq=[];for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const o=G[r][c];if(isT(o)&&o.p&&!o.trig){o.trig=true;qq.push({r,c,tile:o});}}if(!qq.length)break;await detonate(qq);await cascade();}
+  for(let q=0;q<6&&!L.skip;q++){const qq=[];for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const o=G[r][c];if(isT(o)&&o.p&&!o.trig){o.trig=true;qq.push({r,c,tile:o});}}if(!qq.length)break;await detonate(qq);await cascade();}
+  L.encore=false;$('#toolhint').textContent='';$('#banner').hidden=true;
   const first=L.n===S.level;S.rating[L.n]=Math.max(S.rating[L.n]||0,rate);
   const m=L.hard?2:1;const rw=first?{coins:(60+bonus)*m,stars:m,energy:6}:{coins:40+Math.floor(bonus/2)};grant(rw);
   if(first){S.level++;S.streak=Math.min(3,(S.streak||0)+1);}save();
@@ -1294,7 +1297,8 @@ function startLevel(sel){
 /* ---- board input ---- */
 let drag=null;
 function cellAt(e){const b=bc.getBoundingClientRect();const x=e.clientX-b.left-PADB,y=e.clientY-b.top-PADB;const c=Math.floor(x/cs),r=Math.floor(y/cs);return inb(r,c)?{r,c}:null;}
-bc.addEventListener('pointerdown',e=>{audio();const p=cellAt(e);if(!p)return;drag={r:p.r,c:p.c,x:e.clientX,y:e.clientY,done:false};try{bc.setPointerCapture(e.pointerId);}catch(_){}idleT=0;hint=null;});
+screens.game.addEventListener('pointerdown',()=>{if(L&&L.encore&&!L.skip){L.skip=true;sfx.coin();}},true);
+bc.addEventListener('pointerdown',e=>{audio();if(L&&L.encore)return;const p=cellAt(e);if(!p)return;drag={r:p.r,c:p.c,x:e.clientX,y:e.clientY,done:false};try{bc.setPointerCapture(e.pointerId);}catch(_){}idleT=0;hint=null;});
 bc.addEventListener('pointermove',e=>{if(!drag||drag.done)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y,th=cs*.32;if(Math.abs(dx)>th||Math.abs(dy)>th){drag.done=true;if(tool)return;let dr=0,dc=0;if(Math.abs(dx)>Math.abs(dy))dc=Math.sign(dx);else dr=Math.sign(dy);onSwipe(drag.r,drag.c,dr,dc);}});
 bc.addEventListener('pointerup',()=>{if(drag&&!drag.done)onTap(drag.r,drag.c);drag=null;});
 bc.addEventListener('pointercancel',()=>{drag=null;});
