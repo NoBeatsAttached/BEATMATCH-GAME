@@ -2093,8 +2093,30 @@ window.__bm={ROOMS,evTap,curTasks,genLevel,throwJunk,hypeBurst,staticScramble,dr
 })();
 </script>
 
+<style>
+#updBtn{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:40;padding:8px 18px 10px;border-radius:16px;border:3px solid #1a0b33;
+  background:linear-gradient(#8bff9f,#3fe06e 45%,#13923d);color:#fff;font:20px 'Lilita One',Impact,sans-serif;-webkit-text-stroke:4px rgba(26,11,51,.85);paint-order:stroke fill;box-shadow:0 4px 0 #1a0b33}
+</style>
+<button id="updBtn" hidden>Update ready · Tap</button>
 <script>
-if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}
+/* Self-updater: home-screen apps on iPhone resume instead of reloading, so check for a newer build
+   whenever the app comes to the front. Reload automatically on safe screens; otherwise show a button. */
+(()=>{const BUILD='1791557915';let ready=false,checking=false;
+  const btn=document.getElementById('updBtn');
+  const safe=()=>{const g=document.getElementById('game'),m=document.getElementById('modal'),st=document.getElementById('story');return g&&g.hidden&&m&&m.hidden&&st&&st.hidden;};
+  const go=()=>{location.reload();};
+  btn.onclick=go;
+  async function check(){if(checking)return;checking=true;
+    try{const r=await fetch('version.json?t='+Date.now(),{cache:'no-store'});if(r.ok){const v=await r.json();
+      if(v.build&&v.build!==BUILD){ready=true;try{const reg=await navigator.serviceWorker?.getRegistration();await reg?.update();}catch(e){}
+        if(safe())go();else btn.hidden=false;}}}catch(e){}
+    checking=false;}
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')check();});
+  window.addEventListener('pageshow',check);window.addEventListener('focus',check);
+  setInterval(()=>{if(ready&&safe())go();else check();},60000);
+  setTimeout(check,1500);
+})();
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{}));}
 </script>
 </body>
 </html>
