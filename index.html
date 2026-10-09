@@ -1403,9 +1403,9 @@ function genLevel(n){
   const goals=[];if(cables)goals.push({k:'cable',n:cables});if(cases)goals.push({k:'case',n:cases});if(amps)goals.push({k:'amp',n:amps});if(tapes.length)goals.push({k:'tape',n:tapes.length});if(pads.length)goals.push({k:'pad',n:pads.length});
   if(tpl.gold)goals.push({k:'gold',n:tpl.gold});
   if(tpl.color){const col=ri(NC);goals.push({k:'t'+col,n:tpl.color+Math.min(10,Math.floor(n/6)*2)});}
-  let bossInfo=null;if(isBoss){const v=chOf(n)%4,hp=Math.min(620,175+chOf(n)*40),ev_=chOf(n)>=4?3:4;goals.length=0;goals.push({k:'boss',n:hp});bossInfo={v,max:hp,every:ev_,tick:ev_};}
+  let bossInfo=null;if(isBoss){const v=chOf(n)%4,hp=Math.min(460,165+chOf(n)*26),ev_=chOf(n)>=8?3:4;goals.length=0;goals.push({k:'boss',n:hp});bossInfo={v,max:hp,every:ev_,tick:ev_};}
   const hard=isHard(n);
-  const moves=isBoss?27-(hard?3:0):tpl.proc?tpl.moves-(hard?3:0):tpl.moves+(n<=6?3:0)-Math.min(5,Math.floor((n-1)/12)*2)-(hard?3:0);
+  const moves=isBoss?28:tpl.proc?tpl.moves-(hard?3:0):tpl.moves+(n<=6?3:0)-Math.min(5,Math.floor((n-1)/12)*2)-(hard?3:0);
   L={n,moves,startMoves:moves,goals,pads,over:false,score:0,hard,boss:bossInfo,drop:0,bstreak:0,goldLeft:isBoss?0:(tpl.gold||0),voids:tpl.m.some(r=>r.includes('X'))};
   fillInitial();
   tapes.forEach(([r,c])=>{if(isT(G[r][c]))G[r][c].tape=1;});
@@ -1575,10 +1575,10 @@ function addDrop(n){const was=L.drop||0;L.drop=Math.min(DROP_MAX,was+n);renderDr
 function renderDrop(){if(!dropEl||!L)return;const full=(L.drop||0)>=DROP_MAX;dropEl.classList.toggle('full',full);const c=dropEl.querySelector('canvas').getContext('2d');c.clearRect(0,0,128,128);
   const n=DROP_MAX,gap=.14;for(let i=0;i<n;i++){const a0=-Math.PI/2+i*P2/n+gap/2,a1=a0+P2/n-gap;c.beginPath();c.arc(64,64,56,a0,a1);c.lineWidth=12;c.lineCap='round';c.strokeStyle=i<(L.drop||0)?(full?'#fff3a0':'#45dcff'):'rgba(255,255,255,.18)';c.stroke();}}
 async function doDrop(){if(!L||L.over)return;if((L.drop||0)<DROP_MAX){toast('Swipe on the beat to charge the Drop',1500);return;}if(busy)return;
-  busy=true;hint=null;L.drop=0;L.bstreak=0;renderDrop();sfx.drop();buzz(80);banner('THE DROP!');await sleep(450);shake=24;fx.push({type:'flash',t:0,life:.45});
+  busy=true;hint=null;L.drop=0;L.bstreak=0;renderDrop();sfx.drop();buzz(80);banner('THE DROP!');await sleep(450);shake=18;
   const rows=[...Array(ROWS).keys()].sort(()=>Math.random()-.5).slice(0,3),cols=[...Array(COLS).keys()].sort(()=>Math.random()-.5).slice(0,2);
   await detonate([...rows.map(r=>({r,c:3,type:'rowF'})),...cols.map(c=>({r:4,c,type:'colF'}))]);await cascade();await afterMove(false);}
-function dropGuide(){modal({title:'Play on the beat',body:`<div class="guide inset"><img src="${iconURL('flame')}" alt=""><div><b>Watch the board's edge</b>It pulses pink on every beat of the backing track.</div>
+function dropGuide(){modal({title:'Play on the beat',body:`<div class="guide inset"><img src="${iconURL('flame')}" alt=""><div><b>Watch the DROP button</b>Its ring pulses on every beat of the backing track.</div>
   <img src="${iconURL('star')}" alt=""><div><b>Swipe on the pulse</b>ON BEAT charges the Drop meter. PERFECT charges it double. Streaks add bonus charge.</div>
   <img src="${iconURL('sub')}" alt=""><div><b>Tap DROP when it's full</b>A free bass drop that blasts 3 rows and 2 columns. It doesn't cost a move.</div></div>`,buttons:[{label:'Let\'s go'}]});}
 /* ---- headliner showdown ---- */
@@ -1744,7 +1744,7 @@ function renderBoard(dt,t){
   else{const isV=(r,q)=>G[r][q]&&G[r][q].k==='void';c.fillStyle='#1a0b33';for(let r=0;r<ROWS;r++)for(let q=0;q<COLS;q++)if(!isV(r,q)){rr(c,ix+q*cs-5,iy+r*cs-5,cs+10,cs+10,cs*.3);c.fill();}
     c.fillStyle=fg;for(let r=0;r<ROWS;r++)for(let q=0;q<COLS;q++)if(!isV(r,q)){rr(c,ix+q*cs-2,iy+r*cs-2,cs+4,cs+4,cs*.26);c.fill();}}
   for(let r=0;r<ROWS;r++)for(let q=0;q<COLS;q++){if((r+q)%2||(G[r][q]&&G[r][q].k==='void'))continue;c.fillStyle='rgba(255,255,255,.16)';c.fillRect(ix+q*cs,iy+r*cs,cs,cs);}
-  {const bp=Math.pow(1-beatPhase(),3),full=(L.drop||0)>=DROP_MAX;if(bp>.02){rr(c,ix-4,iy-4,iw+8,ih+8,cs*.3);c.lineWidth=3+bp*3;c.strokeStyle=full?`rgba(255,200,61,${.25+bp*.75})`:`rgba(255,79,139,${bp*.85})`;c.save();c.shadowColor=full?'#ffc83d':'#ff4f8b';c.shadowBlur=14*bp;c.stroke();c.restore();}}
+  /* beat cue lives on the DROP button only (no board flashing) */
   c.save();rr(c,ix-2,iy-2,iw+4,ih+4,cs*.28);c.clip();
   for(let r=0;r<ROWS;r++)for(let q=0;q<COLS;q++){const o=G[r][q];if(!o)continue;if(o.k==='cable')drawSpr(c,'cable'+o.hp,cx(q),cy(r),cs*.98);else if(o.k==='case')drawSpr(c,'case',cx(q),cy(r),cs*.96);
     else if(o.k==='cdj')drawSpr(c,'cd',cx(q),cy(r),cs*.92);
@@ -1763,7 +1763,7 @@ function renderBoard(dt,t){
       const g=e.type==='beamH'?c.createLinearGradient(0,cy(e.r)-w/2,0,cy(e.r)+w/2):c.createLinearGradient(cx(e.c)-w/2,0,cx(e.c)+w/2,0);g.addColorStop(0,'rgba(69,220,255,0)');g.addColorStop(.5,'rgba(255,255,255,1)');g.addColorStop(1,'rgba(69,220,255,0)');c.fillStyle=g;
       if(e.type==='beamH')c.fillRect(0,cy(e.r)-w/2,BW,w);else c.fillRect(cx(e.c)-w/2,0,w,BH);c.restore();}
     else if(e.type==='ring'){c.save();c.globalAlpha=1-u;c.strokeStyle=e.col;c.lineWidth=cs*.35*(1-u)+2;c.beginPath();c.arc(e.x,e.y,e.R*Math.sqrt(u),0,P2);c.stroke();c.restore();}
-    else if(e.type==='flash'){c.save();c.globalAlpha=(1-u)*.5;c.fillStyle='#fff';c.fillRect(0,0,BW,BH);c.restore();}
+    else if(e.type==='flash'){c.save();c.globalAlpha=(1-u)*.14;c.fillStyle='#fff';c.fillRect(0,0,BW,BH);c.restore();}
     else if(e.type==='zap'){c.save();c.globalCompositeOperation='lighter';c.globalAlpha=1-u;c.strokeStyle=e.col;c.lineWidth=4;c.shadowColor=e.col;c.shadowBlur=12;c.beginPath();c.moveTo(e.x0,e.y0);const m=6;for(let j=1;j<=m;j++){const v=j/m;c.lineTo(e.x0+(e.x1-e.x0)*v+(j<m?(Math.random()-.5)*14:0),e.y0+(e.y1-e.y0)*v+(j<m?(Math.random()-.5)*14:0));}c.stroke();c.strokeStyle='#fff';c.lineWidth=1.5;c.stroke();c.restore();}
     else if(e.type==='fly'){const x=e.x0+(e.x1-e.x0)*u,y=e.y0+(e.y1-e.y0)*u-Math.sin(u*Math.PI)*cs*1.6;drawSpr(c,e.k,x,y,cs*1.05);}
     else if(e.type==='text'){const sc=u<.15?.5+u/.15*.7:u<.25?1.2-(u-.15)*2:1;c.save();c.globalAlpha=u>.7?1-(u-.7)/.3:1;c.translate(e.x,e.y-u*36);c.scale(sc,sc);c.font=`${e.size}px ${FONT}`;c.textAlign='center';c.textBaseline='middle';c.lineJoin='round';c.lineWidth=8;c.strokeStyle='#1a0b33';c.strokeText(e.str,0,0);c.fillStyle=e.col;c.fillText(e.str,0,0);c.restore();}
@@ -2242,7 +2242,7 @@ window.__bm={openAvatars,ROOMS,evTap,openAlbum,drawCards,checkSets,buyCard,doDro
 <script>
 /* Self-updater: home-screen apps on iPhone resume instead of reloading, so check for a newer build
    whenever the app comes to the front. Reload automatically on safe screens; otherwise show a button. */
-(()=>{const BUILD='1791559254';let ready=false,checking=false;
+(()=>{const BUILD='1791559888';let ready=false,checking=false;
   const btn=document.getElementById('updBtn');
   const safe=()=>{const g=document.getElementById('game'),m=document.getElementById('modal'),st=document.getElementById('story');return g&&g.hidden&&m&&m.hidden&&st&&st.hidden;};
   const go=()=>{location.reload();};
