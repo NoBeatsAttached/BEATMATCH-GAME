@@ -2265,7 +2265,10 @@ function popTap(i){const P=S.pop,it=P.g[i];const[x,y]=popXY(i);
       buttons:[{label:`Keep ${ic('coin')} ${cost}`,cls:'gold',disabled:S.coins<cost,onClick:()=>{if(S.coins<cost)return;S.coins-=cost;delete it.bub;sfx.coin();popDiscover(it.t);save();}}]});return;}
   if(it.t==='pc'){P.g[i]=null;S.coins+=it.v||20;sfx.coin();ptext(x,y,'+'+(it.v||20),'#ffd23d',20);pburst(x,y,'#ffd23d',14);save();return;}
   if(it.t==='u3'){P.g[i]=null;if(P.gl<5){P.gl++;popGenBump=1;ptext(PW*.78,pCounterTop,popTheme().genName+' Lv '+P.gl,'#7dff8a',20);toast(`${popTheme().genName} upgraded. Better drops.`);}else{S.coins+=100;ptext(x,y,'+100','#ffd23d',20);}sfx.win();buzz(25);pburst(x,y,'#ff8a1f',22);save();return;}
-  ptext(x,y-pcs*.3,popName(it.t),'#fff',15);}
+  if(!popNext(it.t)&&/^p\d[ab]\d$/.test(it.t)){const top=it.t[2]==='a',val=top?160:90,wants=S.pop.order&&S.pop.order.t===it.t;
+    modal({title:popName(it.t),body:`<div class="rewards"><div class="rw" style="width:100px"><img src="${iconURL(it.t)}" alt="" style="width:80px;height:80px"></div></div><p>This is the top item in its line. It can't merge any higher.</p><p>Sell it for <b>${val} coins</b> and a ticket${wants?', or drag it to the fan who wants it for more.':', or keep it in case a fan orders one.'}</p>`,
+      buttons:[{label:'Keep',cls:'dim'},{label:`Sell ${ic('coin')} ${val}`,cls:'gold',onClick:()=>{if(S.pop.g[i]!==it)return;S.pop.g[i]=null;S.coins+=val;S.pop.energy++;sfx.coin();ptext(x,y,'+'+val,'#ffd23d',22);pburst(x,y,'#ffd23d',22);save();renderPopHud();}}]});return;}
+  ptext(x,y-pcs*.3,popName(it.t)+(popNext(it.t)?' · merge 2 to upgrade':''),'#fff',14);}
 function popDrop(a,b){const P=S.pop,A=P.g[a];if(b===null||b===a||!A)return;if(!popFree(b)){sfx.bad();return;}const B=P.g[b];
   if(B&&(B.box||B.bub)){sfx.bad();return;}
   if(B&&B.t===A.t&&popNext(A.t)){popMerge(a,b);return;}
@@ -2292,6 +2295,7 @@ function popInfo(){const th=popTheme();modal({title:th.name,body:`<div class="gu
   <img src="${iconURL(`p${S.pop.theme}a2`)}" alt=""><div><b>Drag 2 matching items together</b>They merge into the next item. Every new one fills the collection bar.</div>
   <img src="${iconURL('crate')}" alt=""><div><b>Merge next to fog and crates</b>That clears the fog and opens the crates.</div>
   <img src="${iconURL('key')}" alt=""><div><b>Keys open the locks</b>You get keys from collection milestones and big tips.</div>
+  <img src="${iconURL(`p${S.pop.theme}b4`)}" alt=""><div><b>Top items sell</b>Tap a maxed-out item (like a Box Set) to sell it for coins. Fans may order them for more.</div>
   <img src="${iconURL('u3')}" alt=""><div><b>Bolt → Gear → Motor</b>Tap a Motor to upgrade the ${th.genName} for better drops.</div>
   <img src="${avatarURL(1)}" alt="" style="border-radius:50%"><div><b>Serve the ${th.fans}</b>Drag the item they want onto them for coins.</div>
 </div><p class="note">A new pop-up opens every 2 days with new items. Your tickets carry over.</p>`,buttons:[{label:'Let\'s go'}]});}
@@ -2797,7 +2801,7 @@ window.__bm={winLevel,openQuests,openRush,rushStart,rushWin,quest,tourChest,get 
 <script>
 /* Self-updater: home-screen apps on iPhone resume instead of reloading, so check for a newer build
    whenever the app comes to the front. Reload automatically on safe screens; otherwise show a button. */
-(()=>{const BUILD='1794026502';let ready=false,checking=false;
+(()=>{const BUILD='1794026596';let ready=false,checking=false;
   const btn=document.getElementById('updBtn');
   const safe=()=>{const g=document.getElementById('game'),m=document.getElementById('modal'),st=document.getElementById('story');return g&&g.hidden&&m&&m.hidden&&st&&st.hidden;};
   const go=()=>{location.reload();};
