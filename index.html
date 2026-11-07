@@ -1319,7 +1319,7 @@ function drawGenericBox(c,W,H,t,R){const done=new Set(S.studio.done),fy=H*.66;
     Object.assign(P,{txt:it.txt,road:it.road,rec:it.rec,plat:it.plat,booth:it.booth,BW:W});
     const wob=!ok&&it.k!=='lights'&&it.k!=='neon'&&it.k!=='pa';
     c.save();if(wob){c.translate(x+w/2,y+h);c.rotate((hsh(it.id)%2?1:-1)*.05);c.translate(-(x+w/2),-(y+h));}
-    IT[it.k](c,x,y,w,h,P,t);
+    if(ok)drawItemStyled(c,it,x,y,w,h,P,t);else IT[it.k](c,x,y,w,h,P,t);
     if(wob){const s=hsh(it.id);c.strokeStyle='rgba(15,10,20,.65)';c.lineWidth=1.5;c.beginPath();c.moveTo(x+w*((s%5)/10+.2),y+h*.1);c.lineTo(x+w*.5,y+h*.45);c.lineTo(x+w*((s%3)/6+.4),y+h*.85);c.stroke();}
     c.restore();}}
 function drawFloorPat(c,type,bx,bw,wb,VP,W,H,col2){
@@ -1437,7 +1437,23 @@ function nextTask(){const done=new Set(S.studio.done);const open=curTasks().filt
 /* ---- Studio restore flow (Truck Star style): 3 open jobs at a time, room %, camera move-in, work FX, style pick ---- */
 const STYLE_PALS=[{a:'#ff4f8b',b:'#2a1a50',c:'#45dcff'},{a:'#ffc83d',b:'#3a1a10',c:'#ff7a2e'},{a:'#45dcff',b:'#0e2a4a',c:'#9df4ff'},{a:'#7dff8a',b:'#123a24',c:'#ffc83d'},{a:'#b46cff',b:'#1c1238',c:'#ff8ad0'},{a:'#ff5a3d',b:'#2a0e14',c:'#ffd56b'},{a:'#f4f0ff',b:'#2a2238',c:'#ff4f8b'},{a:'#ff8a1f',b:'#1a2a3a',c:'#45dcff'}];
 function itemPals(it){const h=hsh(it.id),N=STYLE_PALS.length,base={a:it.a||'#ff4f8b',b:it.b||'#2a1a50',c:it.c||'#45dcff'};
-  const p1=STYLE_PALS[h%N];let p2=STYLE_PALS[(h>>3)%N];if(p2===p1)p2=STYLE_PALS[(h%N+3)%N];return[base,p1,p2];}
+  const cand=[];for(let k=0;k<N;k++){const p=STYLE_PALS[(h+k*3)%N];if(p.a!==base.a&&p.a!=='#f4f0ff'&&!cand.includes(p))cand.push(p);if(cand.length===2)break;}
+  return[base,Object.assign({tint:cand[0].a},cand[0]),Object.assign({tint:cand[1].a},cand[1])];}
+/* items whose art ignores the palette get recolored with a 'color' blend so every style really looks different */
+const TINT_KINDS=new Set(['posters','window','crates','onair','tv','lights','glass','diffuser','plaques','mirror','piano','chandelier','booth','stage','neon','pa','plant','lamp','micstand','table']);
+let tintCv=null,tintCv2=null;
+function drawItemStyled(c,it,x,y,w,h,P,t){
+  if(!P.tint||!TINT_KINDS.has(it.k)){IT[it.k](c,x,y,w,h,P,t);return;}
+  const m=c.getTransform(),k=Math.max(1,Math.hypot(m.a,m.b)),mx=w*.25,my=h*.25,W=Math.ceil((w+mx*2)*k),H=Math.ceil((h+my*2)*k);
+  if(!tintCv){tintCv=document.createElement('canvas');tintCv2=document.createElement('canvas');}
+  for(const cv of[tintCv,tintCv2]){if(cv.width<W)cv.width=W;if(cv.height<H)cv.height=H;}
+  const o=tintCv.getContext('2d'),o2=tintCv2.getContext('2d');
+  o.setTransform(1,0,0,1,0,0);o.globalCompositeOperation='source-over';o.clearRect(0,0,tintCv.width,tintCv.height);
+  o.setTransform(k,0,0,k,(mx-x)*k,(my-y)*k);IT[it.k](o,x,y,w,h,P,t);o.setTransform(1,0,0,1,0,0);
+  o2.setTransform(1,0,0,1,0,0);o2.globalCompositeOperation='copy';o2.drawImage(tintCv,0,0);
+  o.globalCompositeOperation='color';o.globalAlpha=.85;o.fillStyle=P.tint;o.fillRect(0,0,W,H);o.globalAlpha=1;
+  o.globalCompositeOperation='destination-in';o.drawImage(tintCv2,0,0);o.globalCompositeOperation='source-over';
+  c.drawImage(tintCv,0,0,W,H,x-mx,y-my,w+mx*2,h+my*2);}
 function itemPal(it){const i=(S.studio.style||{})[it.id]||0;const ps=itemPals(it);return ps[i]||ps[0];}
 const itemOf=id=>(ROOMS[roomIdx()].items||[]).find(i=>i.id===id);
 const canStyle=it=>!!(it&&IT[it.k]&&it.w);
@@ -1468,7 +1484,7 @@ function drawItemThumb(cv,it,pal,busted){const c=cv.getContext('2d'),S0=cv.width
   if(!it||!IT[it.k]||!it.w){drawSpr(c,'clip',S0/2,S0/2,S0*.78);return;}
   const asp=(it.w/it.h)/.74,pad=S0*.1,m=S0-pad*2;let w=m,h=m;if(asp>1)h=m/asp;else w=m*asp;
   const P=busted?{a:'#7c7682',b:'#55505c',c:'#8e8994',glow:false}:Object.assign({glow:true},pal);Object.assign(P,{txt:it.txt,road:it.road,rec:it.rec,plat:it.plat,booth:it.booth,BW:w/it.w});
-  c.save();try{IT[it.k](c,(S0-w)/2,(S0-h)/2,w,h,P,1);}catch(e){}c.restore();}
+  c.save();try{if(busted)IT[it.k](c,(S0-w)/2,(S0-h)/2,w,h,P,1);else drawItemStyled(c,it,(S0-w)/2,(S0-h)/2,w,h,P,1);}catch(e){}c.restore();}
 function closeFixPanel(){const el=$('#fixPanel');if(el)el.remove();}
 function openFixPanel(justDone,prevPct){
   closeFixPanel();const R=ROOMS[roomIdx()],done=new Set(S.studio.done);const open=curTasks().filter(t=>!done.has(t[0])).slice(0,3);
@@ -2781,7 +2797,7 @@ window.__bm={winLevel,openQuests,openRush,rushStart,rushWin,quest,tourChest,get 
 <script>
 /* Self-updater: home-screen apps on iPhone resume instead of reloading, so check for a newer build
    whenever the app comes to the front. Reload automatically on safe screens; otherwise show a button. */
-(()=>{const BUILD='1794026139';let ready=false,checking=false;
+(()=>{const BUILD='1794026502';let ready=false,checking=false;
   const btn=document.getElementById('updBtn');
   const safe=()=>{const g=document.getElementById('game'),m=document.getElementById('modal'),st=document.getElementById('story');return g&&g.hidden&&m&&m.hidden&&st&&st.hidden;};
   const go=()=>{location.reload();};
