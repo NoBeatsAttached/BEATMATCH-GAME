@@ -19,6 +19,7 @@ html,body{height:100%;margin:0;overscroll-behavior:none}
 body{position:fixed;inset:0;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);font-size:14px;-webkit-text-size-adjust:100%;touch-action:manipulation}
 img{max-width:100%}
 [hidden]{display:none!important}
+#hCoins{white-space:nowrap;overflow:hidden}
 </style>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1624,7 +1625,7 @@ function openDaily(){const d=S.daily||(S.daily={day:0,last:''});const idx=d.day%
     buttons:ready?[{label:'Claim',onClick:()=>{const r=Object.assign({},DAILY[idx]);let cards=null;if(r.cards){cards=drawCards(r.cards);delete r.cards;}grant(r);d.day++;d.last=today();save();sfx.win();renderHome();if(cards)cardReveal(cards);else toast('Daily gift claimed');}}]:[]});}
 function renderHome(){
   tickLives();popInit();{const th=popTheme();$('#popIc').src=iconURL(th.gen);$('#popBT').textContent=popLeft();$('#popBadge').hidden=!!S.pop.disc.length;$('#popBadge').textContent='NEW';}
-  $('#hCoins').textContent=S.coins.toLocaleString();livesUI();$('#hStars').textContent=S.stars;homeTimers();renderQuestBadge();{const n=S.tc||0;$('#tcChip').innerHTML=`<img src="${iconURL('chest')}" alt="">${n}/${TC_N}`;}
+  {const n=S.coins,el=$('#hCoins');el.textContent=n<10000?n.toLocaleString():n<1e5?(Math.floor(n/100)/10).toFixed(1).replace(/\.0$/,'')+'K':n<1e6?Math.floor(n/1000)+'K':(Math.floor(n/1e5)/10).toFixed(1).replace(/\.0$/,'')+'M';}livesUI();$('#hStars').textContent=S.stars;homeTimers();renderQuestBadge();{const n=S.tc||0;$('#tcChip').innerHTML=`<img src="${iconURL('chest')}" alt="">${n}/${TC_N}`;}
   const hard=isHard(S.level),pb=$('#playBtn');pb.classList.toggle('go',!hard);pb.classList.toggle('hot',hard);
   pb.innerHTML=`${S.streak?`<span class="stk"><img src="${iconURL('flame')}" alt="">${S.streak}</span>`:''}Level ${S.level}<small>${hard?'HARD · 2× rewards':venueName(S.level)}</small>`;
   const nb=$('#albBadge');nb.hidden=!S.newCards;nb.textContent=S.newCards||0;$('#dayBadge').hidden=!dailyReady();
@@ -2838,7 +2839,7 @@ window.__bm={popClearCheck,popNextFloor,winLevel,openQuests,openRush,rushStart,r
 <script>
 /* Self-updater: home-screen apps on iPhone resume instead of reloading, so check for a newer build
    whenever the app comes to the front. Reload automatically on safe screens; otherwise show a button. */
-(()=>{const BUILD='1794029087';let ready=false,checking=false;
+(()=>{const BUILD='1794375914';let ready=false,checking=false;
   const btn=document.getElementById('updBtn');
   const safe=()=>{const g=document.getElementById('game'),m=document.getElementById('modal'),st=document.getElementById('story');return g&&g.hidden&&m&&m.hidden&&st&&st.hidden;};
   const go=()=>{location.reload();};
